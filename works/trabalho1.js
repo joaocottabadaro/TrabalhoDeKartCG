@@ -4,7 +4,7 @@ function main() {
   var renderer = initRenderer(); // View function in util/utils
   var camera = changeCamera(new THREE.Vector3(0, -15, 5)); // Init camera in this position
   var dirLight = new THREE.DirectionalLight(lightColor);
-  var light = setDirectionalLighting(scene, new THREE.Vector3(200, 50, 50));
+  var light = setDirectionalLighting(scene, new THREE.Vector3(1, 3, 200));
   var spotLight = new THREE.SpotLight(lightColor);
   var trackballControls = new THREE.TrackballControls(
     camera,
@@ -32,12 +32,12 @@ function main() {
   //var plane = criarPlano(700.0, 700.5);
 
   var gcolor = "rgb(200,200,200)";
-  var planeGeometry = new THREE.PlaneGeometry(700.0, 700.5, 400, 400);
+  var planeGeometry = new THREE.PlaneGeometry(700, 700, 400, 400);
   var planeMaterial = new THREE.MeshLambertMaterial({
     color: gcolor,
     side: THREE.DoubleSide,
   });
-  //  var planeMaterial = new THREE.MeshLambertMaterial({color:"rgb(255,0,0)", side:THREE.DoubleSide});
+
   var plane = new THREE.Mesh(planeGeometry, planeMaterial);
   plane.receiveShadow = true;
   scene.add(plane);
@@ -47,37 +47,11 @@ function main() {
     color: gcolor,
     side: THREE.DoubleSide,
   });
-  //  var planeMaterial = new THREE.MeshLambertMaterial({color:"rgb(255,0,0)", side:THREE.DoubleSide});
   var plane2 = new THREE.Mesh(planeGeometry, planeMaterial);
   plane2.receiveShadow = true;
   scene.add(plane2);
   plane.translateZ(0.1);
-  /*var wireframe = new THREE.WireframeGeometry(planeGeometry);
-    var line = new THREE.LineSegments(wireframe);
-    line.material.color.setStyle("rgb(0, 0, 0)");
-    scene.add(line);*/
-
-  // Enable mouse rotation, pan, zoom etc.
-  /*var planeGeometry = new THREE.PlaneGeometry(400.0, 200.5, 10, 10);
-    planeGeometry.translate(0.0, 0.0, -0.02); // To avoid conflict with the axeshelper
-    var planeMaterial = new THREE.MeshPhongMaterial({
-        color: "rgb(200,200,200)",
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: 1, // positive value pushes polygon further away
-        polygonOffsetUnits: 1
-    });
-    scene.add(plane);
-    var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.receiveShadow = true;
-    scene.add(plane);
  
-    var wireframe = new THREE.WireframeGeometry(planeGeometry);
-    var line = new THREE.LineSegments(wireframe);
-    line.material.color.setStyle("rgb(180, 180, 180)");
-    scene.add(line);*/
-
-  //scene.add(ambientLight);
 
   // cabine e parte central do carro
   const chassi = cubo(2, 4.7, 0.5, "rgb(255,255,255)");
@@ -406,13 +380,15 @@ function main() {
     return skybox;
   }
   //Estatua do Lobo
-  loadOBJFile("assets/", "estatua", true, 70, -140, 210, 9);
-  loadOBJFile("assets/", "statueHorse", true, 50, -200, -100, 0);
+
+  var objetosExternos = new Array();
+  loadOBJFile("assets/",objetosExternos, "estatua", true, 70, -140, 210, 9);
+  loadOBJFile("assets/",objetosExternos, "statueHorse", true, 50, -200, -100, 0);
   var statue = null;
-  var statueHorse = null;
 
   function loadOBJFile(
     modelPath,
+    objetosExternos,
     modelName,
     visibility,
     desiredScale,
@@ -450,6 +426,7 @@ function main() {
           var obj = fixStatuePosition(obj, positionX, positionY, positionZ, 360, 90);
           statue = obj;
           scene.add(statue);
+          objetosExternos.push(obj);
         },
         onProgress,
         onError
@@ -649,8 +626,16 @@ function main() {
   //configura a luz direcional
   function setDirectionalLighting(scene, initialPosition) {
     dirLight.position.copy(initialPosition);
-    dirLight.castShadow = false;
-    dirLight.intensity = 1;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.castShadow = true;
+  
+    dirLight.shadow.camera.left = -200;
+    dirLight.shadow.camera.right = 200;
+    dirLight.shadow.camera.top = 200;
+    dirLight.shadow.camera.bottom = -200;
+    dirLight.name = "Direction Light";
+    dirLight.visible = true;
     scene.add(dirLight);
     return dirLight;
   }
@@ -1357,8 +1342,6 @@ function main() {
     scene.remove(montanha);
     scene.remove(montanhaLadoDireito);
     scene.remove(montanhaPequena);
-    scene.remove(statue);
-    scene.remove(statueHorse);
     scene.remove(poste08);
     scene.remove(poste07);
     scene.remove(poste06);
@@ -1368,6 +1351,9 @@ function main() {
     scene.remove(poste02);
     scene.remove(poste01);
     resetarCarro();
+    objetosExternos.forEach((obj) => {
+      obj.visible = false;
+    });
   }
 
   //altera a câmera para o modo jogo
@@ -1379,8 +1365,6 @@ function main() {
     scene.add(plane);
     scene.add(plane2);
     scene.add(skybox);
-    scene.add(statue);
-    scene.add(statueHorse);
    
     camera = changeCamera(new THREE.Vector3(0, -15, 5));
     resetarCarro();
@@ -1396,6 +1380,10 @@ function main() {
     scene.add(poste03);
     scene.add(poste02);
     scene.add(poste01);
+
+    objetosExternos.forEach((obj) => {
+      obj.visible = true;
+    });
   }
 
   function cameraModoCockpit() {
@@ -1491,7 +1479,7 @@ function main() {
       spotLight.visible = this.viewCarro;
     };
 
-    spotLight;
+  
   })();
 
   //Chamam as funcionalidades que controlam as luzes do cenário
